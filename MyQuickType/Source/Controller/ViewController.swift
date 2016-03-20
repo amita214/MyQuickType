@@ -35,6 +35,18 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
     }
+    
+    override func viewDidAppear(animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        let alert = UIAlertController(title: "Alert!!", message: "Try the text field below. Type in Harry Potter or Jane Austen.", preferredStyle: .Alert)
+        alert.addTextFieldWithConfigurationHandler { (textField) -> Void in
+            textField.placeholder = NSLocalizedString("Type here...", comment: "")
+            textField.delegate = self
+            self.textField = textField
+        }
+        self.presentViewController(alert, animated: true, completion: nil)
+    }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
