@@ -45,6 +45,7 @@ class ViewController: UIViewController {
             textField.delegate = self
             self.textField = textField
         }
+        alert.addAction(UIAlertAction(title: "Dismiss", style: .Destructive, handler: nil))
         self.presentViewController(alert, animated: true, completion: nil)
     }
 
@@ -69,9 +70,7 @@ extension ViewController: UITextFieldDelegate, APSuggestedWordsDelegate {
     func textFieldShouldBeginEditing(textField: UITextField) -> Bool {
         if textField == self.textField {
             if textField.text?.characters.count == 0 {
-                textField.inputAccessoryView = self.suggestionView
-                textField.autocorrectionType = .No
-                textField.reloadInputViews()
+                self.addSuggestionView(textField)
             }
         }
         return true
@@ -79,23 +78,41 @@ extension ViewController: UITextFieldDelegate, APSuggestedWordsDelegate {
     
     func textField(textField: UITextField, shouldChangeCharactersInRange range: NSRange, replacementString string: String) -> Bool {
         if textField == self.textField {
-            if string.characters.count > 0 {
-//                self.removeSuggestionView()
-                let keys = Array(samples.keys).filter{ (key) -> Bool in
-                    return key.lowercaseString.containsString(string.lowercaseString)
-                }
-                self.suggestionViewController.words = {
-                    var values = [String]()
-                    for key in keys {
-                        if let value = self.samples[key] {
-                            values.appendContentsOf(value)
-                        }
+            if var text = textField.text?.lastWord() {
+                text += string
+                if text.characters.count > 0 {
+                    let keys = Array(samples.keys).filter{ (key) -> Bool in
+                        return key.lowercaseString.containsString(text.lowercaseString)
                     }
-                    return values
-                } ()
+                    self.suggestionViewController.words = {
+                        var values = [String]()
+                        for key in keys {
+                            if let value = self.samples[key] {
+                                values.appendContentsOf(value)
+                            }
+                        }
+                        return values
+                    } ()
+                }
+            }
+            if self.suggestionViewController.words?.count == 0 {
+                self.removeSuggestionView()
+            } else {
+                self.addSuggestionView(textField)
             }
         }
         return true
+    }
+    
+    private func addSuggestionView(textField: UITextField) {
+        NSTimer.scheduledTimerWithTimeInterval(0.0, target: self.textField, selector: #selector(UIResponder.resignFirstResponder), userInfo: nil, repeats: false)
+        
+        textField.inputAccessoryView = self.suggestionView
+        textField.autocorrectionType = .No
+        textField.reloadInputViews()
+        
+        NSTimer.scheduledTimerWithTimeInterval(0.0, target: self.textField, selector: #selector(UIResponder.becomeFirstResponder), userInfo: nil, repeats: false)
+
     }
     
     private func removeSuggestionView() {
@@ -111,7 +128,20 @@ extension ViewController: UITextFieldDelegate, APSuggestedWordsDelegate {
     
     func suggestedWordsView(suggestedView: UIInputView, didSelect word: String) {
         if self.suggestionView == suggestedView {
-            self.textField.text = word
+            if var text = self.textField.text {
+                if let range = text.rangeOfString(" ", options: .BackwardsSearch, range: nil, locale: nil) {
+                    if text.startIndex.distanceTo(range.startIndex) == text.characters.count {
+                        self.textField.text = text + word + " "
+                    } else {
+                        let rangeOfLastWord = range.startIndex.advancedBy(1)..<text.endIndex
+                        text.replaceRange(rangeOfLastWord, with: word + " ")
+                        self.textField.text = text
+                    }
+                } else {
+                    self.textField.text = word + " "
+                }
+            
+            }
             self.removeSuggestionView()
         }
     }
