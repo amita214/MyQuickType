@@ -8,6 +8,16 @@
 
 import UIKit
 
+extension String {
+    func lastWord() -> String? {
+        var lastWord = self.componentsSeparatedByString(" ").last
+        if lastWord?.characters.count <= 0 {
+            lastWord = nil
+        }
+        return lastWord
+    }
+}
+
 class ViewController: UIViewController {
 
     @IBOutlet weak var textField: UITextField!
@@ -129,18 +139,13 @@ extension ViewController: UITextFieldDelegate, APSuggestedWordsDelegate {
     func suggestedWordsView(suggestedView: UIInputView, didSelect word: String) {
         if self.suggestionView == suggestedView {
             if var text = self.textField.text {
-                if let range = text.rangeOfString(" ", options: .BackwardsSearch, range: nil, locale: nil) {
-                    if text.startIndex.distanceTo(range.startIndex) == text.characters.count {
-                        self.textField.text = text + word + " "
-                    } else {
-                        let rangeOfLastWord = range.startIndex.advancedBy(1)..<text.endIndex
-                        text.replaceRange(rangeOfLastWord, with: word + " ")
-                        self.textField.text = text
-                    }
+                if let lastWord = text.lastWord() {
+                    let rangeOfLastWord = text.rangeOfString(lastWord, options: .BackwardsSearch, range: nil, locale: nil)!
+                    text.replaceRange(rangeOfLastWord, with: word + " ")
+                    self.textField.text = text
                 } else {
                     self.textField.text = word + " "
                 }
-            
             }
             self.removeSuggestionView()
         }
